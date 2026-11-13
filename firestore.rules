@@ -1,0 +1,137 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidTravelerProfile(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.fullName is string && data.fullName.size() >= 2 && data.fullName.size() <= 80 &&
+             data.email is string && data.email.size() >= 3 && data.email.size() <= 120 &&
+             data.homeCity is string && data.homeCity.size() >= 1 && data.homeCity.size() <= 80 &&
+             data.travelerStyle is string &&
+             data.travelerStyle in ['Beach & Marine', 'Eco-Hiker', 'Heritage & Crafts', 'Foodie & Culture'];
+    }
+
+    function isValidSavedSpot(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.spotId is string && isValidId(data.spotId) &&
+             data.spotName is string && data.spotName.size() >= 1 && data.spotName.size() <= 100 &&
+             data.category is string && data.category.size() >= 1 && data.category.size() <= 40 &&
+             data.barangay is string && data.barangay.size() >= 1 && data.barangay.size() <= 80;
+    }
+
+    function isValidItineraryItem(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.title is string && data.title.size() >= 2 && data.title.size() <= 120 &&
+             data.location is string && data.location.size() >= 2 && data.location.size() <= 120 &&
+             data.dayNumber is int && data.dayNumber >= 1 && data.dayNumber <= 14 &&
+             data.timeSlot is string && data.timeSlot in ['Morning', 'Afternoon', 'Sunset', 'Evening'] &&
+             data.notes is string && data.notes.size() <= 400 &&
+             data.visited is bool &&
+             data.source is string && data.source in ['manual', 'catalog', 'ai_planner'];
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if isOwner(userId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       incoming().keys().hasAll(['userId', 'fullName', 'email', 'homeCity', 'travelerStyle', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'fullName', 'email', 'homeCity', 'travelerStyle', 'createdAt', 'updatedAt']) &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       isValidTravelerProfile(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidTravelerProfile(incoming()) &&
+                       isOwner(userId) &&
+                       isValidId(userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().email == existing().email &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['fullName', 'homeCity', 'travelerStyle', 'updatedAt']);
+
+      allow delete: if isOwner(userId) && isValidId(userId);
+
+      match /savedSpots/{spotId} {
+        allow get: if isOwner(userId) && isValidId(spotId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(spotId) &&
+                         incoming().spotId == spotId &&
+                         incoming().keys().hasAll(['userId', 'spotId', 'spotName', 'category', 'barangay', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'spotId', 'spotName', 'category', 'barangay', 'createdAt', 'updatedAt']) &&
+                         incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                         incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                         isValidSavedSpot(incoming());
+
+        allow update: if isSignedIn() &&
+                         isValidSavedSpot(incoming()) &&
+                         isOwner(userId) &&
+                         isValidId(spotId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().spotId == existing().spotId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['spotName', 'category', 'barangay', 'updatedAt']);
+
+        allow delete: if isOwner(userId) && isValidId(spotId);
+      }
+
+      match /itineraries/{itemId} {
+        allow get: if isOwner(userId) && isValidId(itemId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(itemId) &&
+                         incoming().keys().hasAll(['userId', 'title', 'location', 'dayNumber', 'timeSlot', 'notes', 'visited', 'source', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'title', 'location', 'dayNumber', 'timeSlot', 'notes', 'visited', 'source', 'createdAt', 'updatedAt']) &&
+                         incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                         incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                         isValidItineraryItem(incoming());
+
+        allow update: if isSignedIn() &&
+                         isValidItineraryItem(incoming()) &&
+                         isOwner(userId) &&
+                         isValidId(itemId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().source == existing().source &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                         (
+                           incoming().diff(existing()).affectedKeys().hasOnly(['visited', 'updatedAt']) ||
+                           incoming().diff(existing()).affectedKeys().hasOnly(['title', 'location', 'dayNumber', 'timeSlot', 'notes', 'visited', 'updatedAt'])
+                         );
+
+        allow delete: if isOwner(userId) && isValidId(itemId);
+      }
+    }
+  }
+}

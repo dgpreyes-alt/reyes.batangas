@@ -1,0 +1,6 @@
+{
+  "name": "BatangasConnect AI",
+  "description": "Smart tourism mobile application for San Juan, Batangas featuring Google Sign-In authentication, modular MVVM architecture, Firestore itinerary sync, and Gemini AI tour planning.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

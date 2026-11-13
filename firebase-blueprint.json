@@ -1,0 +1,147 @@
+{
+  "entities": {
+    "TravelerProfile": {
+      "title": "TravelerProfile",
+      "description": "Authenticated San Juan, Batangas traveler profile created during registration.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the traveler"
+        },
+        "fullName": {
+          "type": "string",
+          "description": "Traveler full display name"
+        },
+        "email": {
+          "type": "string",
+          "description": "Google account email address"
+        },
+        "homeCity": {
+          "type": "string",
+          "description": "Origin city or municipality"
+        },
+        "travelerStyle": {
+          "type": "string",
+          "description": "Preferred San Juan Batangas tourism style",
+          "enum": ["Beach & Marine", "Eco-Hiker", "Heritage & Crafts", "Foodie & Culture"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()"
+        }
+      },
+      "required": ["userId", "fullName", "email", "homeCity", "travelerStyle", "createdAt", "updatedAt"]
+    },
+    "SavedSpot": {
+      "title": "SavedSpot",
+      "description": "Bookmarked San Juan, Batangas tourist attraction for a user.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner UID"
+        },
+        "spotId": {
+          "type": "string",
+          "description": "Curated destination slug ID"
+        },
+        "spotName": {
+          "type": "string",
+          "description": "Display name of the attraction"
+        },
+        "category": {
+          "type": "string",
+          "description": "Tourism category"
+        },
+        "barangay": {
+          "type": "string",
+          "description": "Barangay in San Juan, Batangas"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()"
+        }
+      },
+      "required": ["userId", "spotId", "spotName", "category", "barangay", "createdAt", "updatedAt"]
+    },
+    "TripItineraryItem": {
+      "title": "TripItineraryItem",
+      "description": "Planned stop in a user's San Juan, Batangas itinerary.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner UID"
+        },
+        "title": {
+          "type": "string",
+          "description": "Activity or attraction title"
+        },
+        "location": {
+          "type": "string",
+          "description": "Barangay or spot address in San Juan, Batangas"
+        },
+        "dayNumber": {
+          "type": "integer",
+          "description": "Trip day number (1-14)"
+        },
+        "timeSlot": {
+          "type": "string",
+          "description": "Time of day slot",
+          "enum": ["Morning", "Afternoon", "Sunset", "Evening"]
+        },
+        "notes": {
+          "type": "string",
+          "description": "Travel notes or AI tips"
+        },
+        "visited": {
+          "type": "boolean",
+          "description": "Whether the traveler has visited this stop"
+        },
+        "source": {
+          "type": "string",
+          "description": "Origin of the itinerary entry",
+          "enum": ["manual", "catalog", "ai_planner"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()"
+        }
+      },
+      "required": ["userId", "title", "location", "dayNumber", "timeSlot", "notes", "visited", "source", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/TravelerProfile" },
+      "description": "Per-user traveler registration profile isolated by auth UID."
+    },
+    "/users/{userId}/savedSpots/{spotId}": {
+      "schema": { "$ref": "#/entities/SavedSpot" },
+      "description": "User's bookmarked destinations in San Juan, Batangas."
+    },
+    "/users/{userId}/itineraries/{itemId}": {
+      "schema": { "$ref": "#/entities/TripItineraryItem" },
+      "description": "User's personal San Juan, Batangas trip itinerary items."
+    }
+  }
+}
